@@ -1,2 +1,2 @@
 # LGame
-# All games are based on Cocos2dx
+- All games are based on Cocos2dx
