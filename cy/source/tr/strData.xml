@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>share_txt</key>
+	<string>"成語接龍大闖關"太有意思啦，好多成語都似是而非。。。http://a.app.qq.com/o/simple.jsp?pkgname=com.qysoft.cyjl</string>	
+
+	
+	<key>share_txt2</key>
+	<string>"成語接龍大闖關"太有意思啦，看看我的等級。。。http://a.app.qq.com/o/simple.jsp?pkgname=com.qysoft.cyjl</string>	
+	
+	<key>link_txt</key>
+	<string>http://a.app.qq.com/o/simple.jsp?pkgname=com.qysoft.cyjl</string>	
+	
+	<key>help_txt</key>
+	<string>誰知道圖片里的成語該填神馬？來自“成語接龍大闖關” http://a.app.qq.com/o/simple.jsp?pkgname=com.qysoft.cyjl</string>		
+	
+	<key>warn_txt1</key>
+	<string>請先完成前面的關卡~</string>		
+	
+	<key>ver_title</key>
+	<string>縱：</string>	
+	
+	<key>hor_title</key>
+	<string>橫：</string>		
+	
+
+	<key>chengwei_0</key>
+	<string>童生</string>	
+
+	<key>chengwei_1</key>
+	<string>秀才</string>	
+
+	<key>chengwei_2</key>
+	<string>舉人</string>	
+
+	<key>chengwei_3</key>
+	<string>進士</string>	
+
+	<key>chengwei_4</key>
+	<string>探花</string>	
+
+	<key>chengwei_5</key>
+	<string>榜眼</string>	
+	
+	<key>chengwei_6</key>
+	<string>狀元</string>		
+	
+	<key>chengwei_7</key>
+	<string>大學士</string>		
+	
+	<key>chengwei_8</key>
+	<string>翰林文聖</string>			
+	
+	<key>level</key>
+	<string>您的等級：</string>		
+	
+	<key>retain_time</key>
+	<string>剩餘時間：</string>		
+	
+	<key>passnum</key>
+	<string>當前關數：</string>
+	
+    <key>start_game</key>
+	<string>重新開始</string>	
+	
+    <key>continue_game</key>
+	<string>繼續遊戲</string>	
+
+    <key>quit_game</key>
+	<string>退出遊戲</string>	
+	
+</dict>
+</plist>
