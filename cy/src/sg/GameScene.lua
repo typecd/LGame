@@ -182,13 +182,13 @@ function GameScene:onBackupHandler(tag)
     local char = btn.labelNormal:getString()
     print(char)
 
-    -- 添加一个遮罩
 
-    -- 移动 foucsSpr
-    print("currTag",self.currTag)
     
 
-
+    -- 添加一个遮罩
+    local mask = display.newSprite(IMG_PATH .. "mask.png")
+    mask:addTo(btn)
+    mask:setTag(1000)
     -- 目标btn
     local btn_tag = self.btnArr[self.currTag]
     
@@ -196,15 +196,107 @@ function GameScene:onBackupHandler(tag)
         text = char,
         size = 28,
     })
+    label.originalPos = {btn:getx(), btn:gety()}
+    label.tagPos = {btn_tag:getx(), btn_tag:gety()}
+    label.tag = tag
+
+
+    -- 保存label
+    self.labeCharArr[self.currTag] = label
 
     label:addTo(self.oprateNode)
     label:pos(btn:getx(), btn:gety())
+    label:runAction(CCMoveTo:create(0.1, ccp(btn_tag:getx(), btn_tag:gety())))
+
+    -- 如果当前词语全部填充完，正确判断 否则移动focusSpr
+    if cytw  then
+        -- 正确判断
+            -- true -> 结束判断 ->false -> 移动focusSpr
+            -- false -> 变成突出颜色
+    else
+        -- 移动focusSpr
+        self:moveFocusSpr()
+    end
     
-    label:runAction(CCMoveTo:create(0.2, ccp(btn_tag:getx(), btn_tag:gety())))
+end
+
+
+function GameScene:moveFocusSpr()
+    --- TODO
+    --- 根据当前currTag找到对应对成语第一个空位,并确定当前移动对方向，同一个方向优先寻找
+    local currPos = string.split(self.currTag, ",")
+    currPos = {tonumber(currPos[1]), tonumber(currPos[2])}
+    -- print("self.currTag", self.currTag)
+    -- dump(currPos)
+    -- 手动选择了新位置
+    if self.currData and not self:posInTable(self.currData.pos, currPos) then
+        self.currData = nil
+    end
+
+    -- 如果当前需要填充对成语为nil 根据currTag找一个
+    if not self.currData  then
+        for k, v in ipairs(self.gateData) do
+            for i,pos in ipairs(v.pos) do
+                if currPos[1] == pos[1] and currPos[2] == pos[2] then
+                    self.currData = v
+                    break
+                end
+            end
+            if self.currData then
+                break
+            end
+        end        
+    end
+
+    -- 在currData中找一个未填字的按钮
+    for k, v in ipairs(self.currData.pos) do
+        if self.currData.vis[k] == 0 then
+            local tag = v[1] .. "," .. v[2]
+            local label = self.labeCharArr[tag]
+            if not label then
+                self.currTag = tag
+                self.focusSpr:runAction(
+                    transition.sequence({
+                        CCDelayTime:create(0.1),
+                        CCMoveTo:create(0.1, ccp(v[1] * self.bgSize, v[2] * self.bgSize))
+                    })    
+                )
+                return
+            end
+        end
+    end
+
+    -- 当前词语已经填满 找一个新位置
+    for k, v in ipairs(self.gateData) do
+        for i, pos in ipairs(v.pos) do
+            local tag = pos[1] .. "," .. pos[2]
+            if not self.labeCharArr[tag] and v.vis[i] == 0 then
+                self.currData = v
+                self.currTag = tag
+                self.focusSpr:runAction(
+                    transition.sequence({
+                        CCDelayTime:create(0.1),
+                        CCMoveTo:create(0.1, ccp(pos[1] * self.bgSize, pos[2] * self.bgSize))
+                    })  
+                )
+                return 
+            end
+        end
+    end
 
 end
 
--- 判断区按钮点击
+function GameScene:posInTable(table, pos)
+    --- TODO
+    for k, v in ipairs(table) do
+        if pos[1] == v[1] and pos[2] == v[2] then
+            return true
+        end
+    end
+    return false
+end
+
+-- 操作区按钮点击
 function GameScene:onItemHandler(tag)
     --- TODO
     print(tag)
@@ -219,7 +311,14 @@ function GameScene:onItemHandler(tag)
         self:scaleAndReverce(label, 1.15)
     end
 
-    self.focusSpr:runAction(CCMoveTo:create(0.1, ccp(btn:getx(), btn:gety())))
+    self.focusSpr:runAction(
+        transition.sequence({
+            CCDelayTime:create(0.1),
+            CCMoveTo:create(0.1, ccp(btn:getx(), btn:gety()))
+        })
+    )
+
+    self.currTag = tag
 
     -- 初始带字
     if btn.original then
@@ -229,7 +328,6 @@ function GameScene:onItemHandler(tag)
 
     self:scaleAndReverce(btn, 1.05)
 
-    self.currTag = tag
 
 end
 
