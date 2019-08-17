@@ -30,7 +30,6 @@ function GameScene:ctor()
     self:setTouchEnabled(true)
 
     self.gateData = CONFIG.gateData[CONFIG.gate]
-
     
     self:showBg()
     
@@ -178,50 +177,111 @@ end
 function GameScene:onBackupHandler(tag)
     --- TODO
     print("backup tag", tag)
-    local btn = self.backupBtnArr[tag]
-    local char = btn.labelNormal:getString()
-    print(char)
-
-
-    
-
-    -- 添加一个遮罩
-    local mask = display.newSprite(IMG_PATH .. "mask.png")
-    mask:addTo(btn)
-    mask:setTag(1000)
-    -- 目标btn
     local btn_tag = self.btnArr[self.currTag]
+    if btn_tag.original then
+        print("原始按钮不能添加")
+        return
+    end
     
-    local label = display.newTTFLabel({
-        text = char,
-        size = 28,
-    })
-    label.originalPos = {btn:getx(), btn:gety()}
-    label.tagPos = {btn_tag:getx(), btn_tag:gety()}
-    label.tag = tag
+    local btn = self.backupBtnArr[tag]
+    if btn.choosed then
+        return
+    end
+
+    if not btn.masked then
+        btn.masked = true
+        local char = btn.labelNormal:getString()
+        print(char)
+        -- 添加一个遮罩
+        local mask = display.newSprite(IMG_PATH .. "mask.png")
+        mask:addTo(btn)
+        mask:setTag(1000)
+        -- 目标btn
+        
+        local label = display.newTTFLabel({
+            text = char,
+            size = 28,
+        })
+        label.originalPos = {btn:getx(), btn:gety()}
+        label.tagPos = {btn_tag:getx(), btn_tag:gety()}
+        label.tag = tag  -- 寻找backupbtn
 
 
-    -- 保存label
-    self.labeCharArr[self.currTag] = label
+        -- 保存label
+        self.labeCharArr[self.currTag] = label
+        btn.labelTag = self.currTag
 
-    label:addTo(self.oprateNode)
-    label:pos(btn:getx(), btn:gety())
-    label:runAction(CCMoveTo:create(0.1, ccp(btn_tag:getx(), btn_tag:gety())))
+        label:addTo(self.oprateNode)
+        label:pos(btn:getx(), btn:gety())
+        label:runAction(CCMoveTo:create(0.1, ccp(btn_tag:getx(), btn_tag:gety())))
 
-    -- 如果当前词语全部填充完，正确判断 否则移动focusSpr
-    if cytw  then
-        -- 正确判断
-            -- true -> 结束判断 ->false -> 移动focusSpr
-            -- false -> 变成突出颜色
-    else
         -- 移动focusSpr
-        self:moveFocusSpr()
+        self:findTagAndMoveFocusSpr()
+    else
+        -- 已经有遮罩,找到对应label移除 并移除再移除mask
+        btn.masked = false
+
+        local label = self.labeCharArr[btn.labelTag]
+        self:labelMoveToBackup(label)
+        self.currTag = btn.labelTag
+        local pos = string.split(self.currTag, ",")
+        self.focusSpr:runAction(CCMoveTo:create(0.1, ccp(pos[1] * self.bgSize, pos[2] * self.bgSize)))
+        self.labeCharArr[btn.labelTag] = nil
     end
     
 end
 
+-- 操作区按钮点击
+function GameScene:onItemHandler(tag)
+    --- TODO
+    print(tag)
+    local btn = self.btnArr[tag]
 
-function GameScene:moveFocusSpr()
+    if self.currTag == tag then
+        print("当前按钮")
+        -- 当前按钮没字
+        return
+        
+    end
+    
+    local label = self.labeCharArr[tag]
+    if label and not btn.original then -- 当前按钮有字 但不是原始内容
+        -- label 移除
+        self:labelMoveToBackup(label)
+        self.labeCharArr[tag] = nil
+    elseif label and btn.original then
+        -- 当前按钮变为原始内容
+        self:scaleAndReverce(label, 1.15)
+    end
+
+    -- 创建按钮时添加到label
+    local label_ori = btn:getChildByTag(1000)
+    if label_ori then
+        print(label_ori:getString())
+        self:scaleAndReverce(label_ori, 1.15)
+    end
+
+    self.focusSpr:runAction(
+        transition.sequence({
+            CCDelayTime:create(0.1),
+            CCMoveTo:create(0.1, ccp(btn:getx(), btn:gety()))
+        })
+    )
+
+    self.currTag = tag
+
+    -- 初始带字
+    if btn.original then
+        print("原始内容")
+        return
+    end
+
+    self:scaleAndReverce(btn, 1.05)
+
+
+end
+
+function GameScene:findTagAndMoveFocusSpr()
     --- TODO
     --- 根据当前currTag找到对应对成语第一个空位,并确定当前移动对方向，同一个方向优先寻找
     local currPos = string.split(self.currTag, ",")
@@ -266,6 +326,27 @@ function GameScene:moveFocusSpr()
         end
     end
 
+    -- 执行到这时，表示当前词已经填满
+    self:isContentComplete(self.currData)
+    
+    -- 判断currTag 还在不在其他词语中\
+    local other_data = {}
+    for k, data in ipairs(self.gateData) do
+        if data ~= self.currData then
+            local pos = self:tagToPos(self.currTag)
+            if self:posInTable(data.pos, pos) then
+                print("其他词语")
+                table.insert(other_data, data)
+            end
+        end
+    end
+
+    for k, v in ipairs(other_data) do
+        self:isContentComplete(v)
+    end
+
+
+
     -- 当前词语已经填满 找一个新位置
     for k, v in ipairs(self.gateData) do
         for i, pos in ipairs(v.pos) do
@@ -286,6 +367,81 @@ function GameScene:moveFocusSpr()
 
 end
 
+
+-- 将正确填充的词语设置为特殊颜色，并改变对应backup按钮的显示和点击效果
+-- data为当前词语的数据
+function GameScene:isContentComplete(data)
+    --- TODO
+    local strIndex = 1
+    local complete = true
+    local temp_btn_tag = {}
+    local temp_label = {} 
+    for k, v in ipairs(data.pos) do
+        if data.vis[k] == 0 then
+            local tag = v[1] .. "," .. v[2]
+            print("tag", tag)
+            local label = self.labeCharArr[tag]
+            if label then
+                local char = label:getString()
+                if char ~= string.sub(data.term, strIndex, strIndex + 2) then
+                    complete = false
+                    -- break
+                end
+                table.insert(temp_label, label)
+            else
+                -- 为填写完
+                return
+            end
+            table.insert(temp_btn_tag, tag)
+        end
+        strIndex = strIndex + 3
+    end
+
+    if complete then
+        print("填写正确")
+        dump(temp_btn_tag)
+        for k, tag in ipairs(temp_btn_tag) do
+            local btn = self.btnArr[tag]
+            if not btn.original then
+                btn:setColor(ccc3(0, 255, 0))
+                btn.original = true
+            end
+        end
+
+        -- 对应的backup按钮文字移除,点击不在有效果
+        for k, lb in ipairs(temp_label) do
+            local btn_backup = self.backupBtnArr[lb.tag]
+            if btn_backup.labelNormal then
+                btn_backup.labelNormal:removeSelf()
+                btn_backup.labelPressed:removeSelf()
+                btn_backup.labelDisabled:removeSelf()
+                btn_backup.labelNormal = nil
+                btn_backup.labelPressed = nil
+                btn_backup.labelDisabled = nil
+            end
+            btn_backup.choosed = true
+        end
+        -- 添加特效
+    else
+        -- 不完全正确,没有变成original的btn要变色 错误提示
+        for k, tag in ipairs(temp_btn_tag) do
+            local btn = self.btnArr[tag]
+            if not btn.original then
+                btn:setColor(ccc3(255, 0, 0))
+            end
+        end
+
+    end
+end
+
+
+function GameScene:tagToPos(tag)
+    --- TODO
+    local t = string.split(tag, ",")
+    t = {tonumber(t[1]), tonumber(t[2])}
+    return t
+end
+
 function GameScene:posInTable(table, pos)
     --- TODO
     for k, v in ipairs(table) do
@@ -296,37 +452,20 @@ function GameScene:posInTable(table, pos)
     return false
 end
 
--- 操作区按钮点击
-function GameScene:onItemHandler(tag)
+function GameScene:labelMoveToBackup(label)
     --- TODO
-    print(tag)
-    if self.currTag == tag then
-        return
-    end
-    
-    local btn = self.btnArr[tag]
-    local label = btn:getChildByTag(1000)
-    if label then
-        print(label:getString())
-        self:scaleAndReverce(label, 1.15)
-    end
-
-    self.focusSpr:runAction(
-        transition.sequence({
-            CCDelayTime:create(0.1),
-            CCMoveTo:create(0.1, ccp(btn:getx(), btn:gety()))
-        })
-    )
-
-    self.currTag = tag
-
-    -- 初始带字
-    if btn.original then
-        print("原始内容")
-        return
-    end
-
-    self:scaleAndReverce(btn, 1.05)
+    -- label 移动到backup btn 
+    -- btn 移除遮罩
+    local act = transition.sequence({
+        CCMoveTo:create(0.2, ccp(label.originalPos[1], label.originalPos[2])),
+        CCCallFuncN:create(function(node)
+            node:removeSelf()
+        end),
+        CCCallFuncN:create(function(node) 
+            self.backupBtnArr[node.tag]:removeChildByTag(1000, true)
+        end)
+    })
+    label:runAction(act)
 
 
 end
@@ -354,15 +493,6 @@ function GameScene:splitPos(posStr)
     return posArr
 end
 
-function GameScene:posInTable(table, pos)
-    --- TODO
-    for k, v in ipairs(table) do
-        if v[1] == pos[1] and v[2] == pos[2] then
-            return true
-        end
-    end
-    
-    return false
-end
+
 
 return GameScene
