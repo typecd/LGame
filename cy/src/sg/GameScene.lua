@@ -241,8 +241,12 @@ function GameScene:onItemHandler(tag)
         print("当前按钮")
         -- 当前按钮没字
         return
-        
     end
+
+    if btn.red then
+        -- 
+    end
+    
     
     local label = self.labeCharArr[tag]
     if label and not btn.original then -- 当前按钮有字 但不是原始内容
@@ -428,6 +432,7 @@ function GameScene:isContentComplete(data)
             local btn = self.btnArr[tag]
             if not btn.original then
                 btn:setColor(ccc3(255, 0, 0))
+                btn.red = true
             end
         end
 
