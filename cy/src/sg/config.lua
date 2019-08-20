@@ -179,6 +179,7 @@ CONFIG.loadConfig = function()
     end
 
     CONFIG.diamond = CCUserDefault:sharedUserDefault():getIntegerForKey(CONFIG.diamondKey);
+    CONFIG.diamond = 3000
 
     -- 音效开关 
     local playEffect = CCUserDefault:sharedUserDefault():getIntegerForKey("sound_status")
@@ -263,3 +264,20 @@ CONFIG.saveExtraInfo = function(key, value)
 end
 
 
+CONFIG.removeViewTableByIndex = function(tab) 
+    local len = #tab
+    local i = 1
+    while(len > 0)
+    do
+        local obj = table.remove(tab)
+        obj:removeSelf()
+        len = len - 1
+    end
+end
+
+
+CONFIG.removeViewTableByKeyValue = function(table) 
+    for k, v in pairs(table) do
+        v:removeSelf()
+    end
+end

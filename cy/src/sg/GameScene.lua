@@ -1,6 +1,8 @@
 local LayerBase = require("sg/LayerBase")
 local GameScene = class("GameScene", LayerBase)
 
+local ConfirmBuyView = require("sg/ConfirmBuyView")
+
 function GameScene.show()
     local layer = GameScene.new()
 
@@ -115,7 +117,7 @@ function GameScene:ctor()
         pressed = CONFIG.IMG_PATH .. "btn_jieshi.png",
         delegate = self,
         callback = self.onButtonHandler,
-        tag = "jishi"
+        tag = "jieshi"
     })
     btn_jieshi:addTo(self)
     btn_jieshi:scale(0.6)
@@ -123,29 +125,26 @@ function GameScene:ctor()
 
     local scrollView = CCScrollView:create()
     scrollView:setViewSize(CCSizeMake(350, 40))
-    scrollView:pos(100, 15)
+    scrollView:pos(60 + self.margin_left, 15)
     scrollView:ignoreAnchorPointForPosition(true)
     scrollView:setDirection(kCCScrollViewDirectionHorizontal)
     scrollView:setClippingToBounds(true)
     scrollView:setBounceable(false)
     scrollView:addTo(self, 2)
-    local lb_mean = display.newTTFLabel({
-        text = "把赤诚的心交给人家。比喻真心待人。",
-        size = 24
-    })
-    print("sz ", lb_mean:getSize().width)
-    lb_mean:pos(300, 0)
-    scrollView:setContentSize(CCSizeMake(lb_mean:getSize().width + 340 + 300, 40))
-    scrollView:addChild(lb_mean)
+    -- local lb_mean = display.newTTFLabel({
+    --     text = "把赤诚的心交给人家。比喻真心待人。",
+    --     size = 24
+    -- })
+    -- print("sz ", lb_mean:getSize().width)
+    -- lb_mean:pos(300, 0)
+    -- scrollView:setContentSize(CCSizeMake(lb_mean:getSize().width + 340 + 300, 40))
+    -- scrollView:addChild(lb_mean)
 
     -- scrollView:setContentOffset(ccp(0, 0))
 
     self.scrollView =scrollView
     self:showBg()
-    
-    
-    -- 美帧更新scorllView的offset
-    self.updateLabel = schedule.scheduleUpdateGlobal(handler(self, self.updateLabelPos))
+   
 
 end
 
@@ -170,11 +169,53 @@ function GameScene:_onExit()
     
 end
 
-function GameScene:startGame()
+function GameScene:startShowMean()
     --- TODO
+     -- 当前关卡以及开通词语解释
+    if not CONFIG.meanTags[CONFIG.gate] then
+        print("功能未开放")
+        return
+    end
+    local str = self:getMeanData(self.currTag)
+    if str == self.currMean then
+        print("mean 未变化")
+        return
+    end
+    if self.lb_mean then
+        self.lb_mean:removeSelf()
+    end
+
+    local lb_mean = display.newTTFLabel({
+        text = str,
+        size = 24
+    })
+    self.lb_mean = lb_mean
+    self.currMean = str
+    self.scrollView:addChild(lb_mean)
+
     self.currOffset = 0 
-    self.maxOffset = 100
+    self.scrollView:setContentOffset(ccp(0, 0))
     
+    if self.updateLabel then
+        scheduler.unscheduleGlobal(self.updateLabel)
+        self.updateLabel = nil
+    end
+
+    local lb_w = lb_mean:getSize().width 
+    if lb_w > 350 then
+        print("lb_w", lb_w)
+        self.scrollView:setContentSize(CCSize(lb_w + 650, 40))
+        lb_mean:pos(300, 0)
+
+        self.maxOffset = lb_w + 300
+
+         -- 每帧更新scorllView的offset
+        self.updateLabel = scheduler.scheduleUpdateGlobal(handler(self, self.updateLabelPos))
+    else
+        self:setContentSize(CCSize(350, 40))
+        
+    end
+
 
 end
 
@@ -205,6 +246,7 @@ function GameScene:showBg()
     end
     self.bgArr = bgArr
     
+    self.labelCount = 0
     self.choosedCount = 0
     self.backupCharsArr = {} -- 所有备选的文字
     self.backupBtnArr = {} -- 所有备选按钮
@@ -280,7 +322,7 @@ function GameScene:updatePosition(dt)
 
     self.showRow = self.showRow + 1
     if self.showRow == 11 then
-        print(" stop schedule ")
+        print(" stop scheduler ")
         scheduler.unscheduleGlobal(self.schedulePos)
         self.schedulePos = nil
 
@@ -294,6 +336,8 @@ function GameScene:updatePosition(dt)
                 break
             end
         end
+
+        self:startShowMean()
     end
 end
 
@@ -362,6 +406,7 @@ function GameScene:onBackupHandler(tag)
         -- 保存label
         self.labeCharArr[self.currTag] = label
         btn.labelTag = self.currTag
+        self.labelCount = self.labelCount + 1
 
         label:addTo(self.oprateNode)
         label:pos(btn:getx(), btn:gety())
@@ -369,17 +414,20 @@ function GameScene:onBackupHandler(tag)
 
         -- 移动focusSpr
         self:findTagAndMoveFocusSpr()
+
+        self:startShowMean()
     else
         -- 已经有遮罩,找到对应label移除 并移除再移除mask
         btn.masked = false
 
         print(btn.labelTag)
-        dump(self.labeCharArr)
 
         local label = self.labeCharArr[btn.labelTag]
         print(label)
 
         self:labelMoveToBackup(label)
+        self.labelCount = self.labelCount - 1
+        
         self.currTag = btn.labelTag
         local pos = string.split(self.currTag, ",")
         self.focusSpr:runAction(CCMoveTo:create(0.1, ccp(pos[1] * self.bgSize, pos[2] * self.bgSize)))
@@ -397,22 +445,18 @@ function GameScene:onItemHandler(tag)
     print(tag)
     local btn = self.btnArr[tag]
 
-    -- 当前关卡以及开通词语解释
-    if CONFIG.meanTags[CONFIG.gate] then
-        local str_mean = self:getMeanData(tag)
-        print("mean", str_mean)
-        if str_mean ~= self.currMeanStr then
-            -- 重新設置滾動文本
-            self.currMeanStr = str_mean
-
-        end
-    end
-
+    
     if self.currTag == tag then
         print("当前按钮")
         -- 当前按钮没字
         return
     end
+    
+    self.currTag = tag
+
+   
+    self:startShowMean()
+    -- end
 
     -- 取消特殊颜色
     -- 找出tag所在词语,让red按钮颜色还原
@@ -436,6 +480,7 @@ function GameScene:onItemHandler(tag)
         -- label 移除
         self:labelMoveToBackup(label)
         self.labeCharArr[tag] = nil
+        self.labelCount = self.labelCount - 1
     elseif label and btn.original then
         -- 当前按钮变为原始内容
         self:scaleAndReverce(label, 1.15)
@@ -455,7 +500,7 @@ function GameScene:onItemHandler(tag)
         })
     )
 
-    self.currTag = tag
+    
 
     -- 初始带字
     if btn.original then
@@ -704,11 +749,17 @@ function GameScene:onButtonHandler(tag)
     --- TODO
     print(tag)
     GameScene.super.onButtonHandler(self, tag)
+    if tag == "reset" then
+        self:resetView()
+    elseif tag == "jieshi" then
+        ConfirmBuyView.show(self)
+    end
 end
 
 -- 获取一个位置对应词语的解释
 function GameScene:getMeanData(tag)
     --- TODO
+    print("mean tag", tag)
     local pos = self:tagToPos(tag)
     -- 0 h水平方向
     -- 1 v
@@ -726,6 +777,7 @@ function GameScene:getMeanData(tag)
         end
     end
 
+    dump(mean_table)
     local str = ""
     if #mean_table == 2 then
         for k, v in ipairs(mean_table) do
@@ -746,7 +798,7 @@ end
 -- 更新offest
 function GameScene:updateLabelPos(dt)
     --- TODO
-    self.currOffset = self.currOffset - 5
+    self.currOffset = self.currOffset - 2
 
     self.scrollView:setContentOffset(ccp(self.currOffset, 0))
 
@@ -754,6 +806,43 @@ function GameScene:updateLabelPos(dt)
         self.currOffset = 0
     end
 end
+
+
+function GameScene:resetView()
+    --- TODO
+
+    if self.labelCount <= 0 then
+        print("不能resetview", self.labelCount)
+        return
+    end
+
+    self.focusSpr:removeSelf()
+    self.focusSpr = nil
+
+
+    for i = 1, 10 do 
+        CONFIG.removeViewTableByIndex(self.bgArr[i])
+    end
+    
+    self.labelCount = 0 -- 操作区中添加了多少个字 用于判定是否可以reset view
+    self.choosedCount = 0 -- 备选区中已经被使用的字个数
+    self.backupCharsArr = {} -- 所有备选的文字
+    CONFIG.removeViewTableByKeyValue(self.backupBtnArr)
+    CONFIG.removeViewTableByKeyValue(self.labeCharArr)
+    CONFIG.removeViewTableByKeyValue(self.btnArr)
+
+    if self.lb_mean then
+        if self.updateLabel then
+            scheduler.unscheduleGlobal(self.updateLabel)
+            self.updateLabel = nil
+        end
+        self.lb_mean:removeSelf()
+        self.lb_mean = nil
+    end
+
+    self:showBg()
+end
+
 
 
 return GameScene
