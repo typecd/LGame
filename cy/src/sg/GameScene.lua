@@ -32,8 +32,8 @@ function GameScene:ctor()
     self.gateData = CONFIG.gateData[CONFIG.gate]
     
     local btn_back = display.newButton({
-        normal = IMG_PATH .. "btn_back_1.png",
-        pressed = IMG_PATH .. "btn_back_2.png",
+        normal = CONFIG.IMG_PATH .. "btn_back_1.png",
+        pressed = CONFIG.IMG_PATH .. "btn_back_2.png",
         delegate = self,
         callback = self.onButtonHandler,
         tag = "back"
@@ -44,18 +44,24 @@ function GameScene:ctor()
     if BA.IS_IPHONEX then
         margin_left = 40
     end
+    self.margin_left = margin_left
+
+    local bgSize = 50
+    self.bgSize = bgSize
+
+
     btn_back:pos(40 + margin_left, display.height - 35)
 
     self:addSoundBtn({150 + margin_left, display.height - 35})
 
     -- 提示标示
-    local tip_spr = display.newSprite(IMG_PATH .. "tip.png")
+    local tip_spr = display.newSprite(CONFIG.IMG_PATH .. "tip.png")
     tip_spr:addTo(self)
     tip_spr:pos(40 + margin_left, 30)
 
     local btn_reset = display.newButton({
-        normal = IMG_PATH .. "btn_reset.png",
-        pressed = IMG_PATH .. "btn_reset.png",
+        normal = CONFIG.IMG_PATH .. "btn_reset.png",
+        pressed = CONFIG.IMG_PATH .. "btn_reset.png",
         delegate = self,
         callback = self.onButtonHandler,
         tag = "reset",
@@ -63,6 +69,76 @@ function GameScene:ctor()
 
     btn_reset:addTo(self)
     btn_reset:pos(465 + margin_left, 30)
+
+    -- 关卡
+    local spr_gate = display.newSprite(CONFIG.IMG_PATH .. "gate.png")
+    spr_gate:pos(display.cx, display.height - 35)
+    spr_gate:addTo(self)
+
+    local lb_gate = CONFIG.createBMFont(CONFIG.gate, CONFIG.IMG_PATH .. "gate_fnt.fnt")
+    lb_gate:addTo(spr_gate)
+    lb_gate:pos(83.5, 30)
+    self.lb_gate = lb_gate
+
+    local spr_coin = display.newSprite(CONFIG.IMG_PATH .. "coin_bg.png")
+    spr_coin:addTo(self)
+    spr_coin:pos(display.width - 150, display.height - 35)
+    local lb_coin = CONFIG.createBMFont(CONFIG.diamond, CONFIG.IMG_PATH .. "coin_fnt.fnt")
+    lb_coin:addTo(spr_coin)
+    lb_coin:pos(100, 32)
+
+
+    local btn_adTip = display.newButton({
+        normal = CONFIG.IMG_PATH .. "btn_adtip.png",
+        pressed = CONFIG.IMG_PATH .. "btn_adtip.png",
+        delegate = self,
+        callback = self.onButtonHandler,
+        tag = "adtip"
+    })
+    btn_adTip:addTo(self)
+    btn_adTip:scale(0.6)
+    btn_adTip:pos(40 + self.margin_left + self.bgSize * 10 + 50, 35)
+    
+    local btn_tip = display.newButton({
+        normal = CONFIG.IMG_PATH .. "btn_tip.png",
+        pressed = CONFIG.IMG_PATH .. "btn_tip.png",
+        delegate = self,
+        callback = self.onButtonHandler,
+        tag = "tip"
+    })
+    btn_tip:addTo(self)
+    btn_tip:scale(0.6)
+    btn_tip:pos(display.cx + (40 + self.margin_left + self.bgSize * 10 + 50)/2 - 25, 35)
+
+    local btn_jieshi = display.newButton({
+        normal = CONFIG.IMG_PATH .. "btn_jieshi.png",
+        pressed = CONFIG.IMG_PATH .. "btn_jieshi.png",
+        delegate = self,
+        callback = self.onButtonHandler,
+        tag = "jishi"
+    })
+    btn_jieshi:addTo(self)
+    btn_jieshi:scale(0.6)
+    btn_jieshi:pos(display.width - 60, 35)
+
+    local scrollView = CCScrollView:create()
+    scrollView:setViewSize(CCSizeMake(350, 40))
+    scrollView:pos(100, 30)
+    scrollView:ignoreAnchorPointForPosition(true)
+    
+    local lb_mean =  display.newTTFLabel({
+        text = "123456",
+        size = 24
+    })
+
+    -- if nil ~= lb_mean then
+        local scrollLayer = display.newLayer()
+        scrollView:setContainer(scrollLayer)
+        scrollView:updateInset()
+    -- end
+    scrollView:setDirection(kCCScrollViewDirectionHorizontal)
+    scrollView:setClippingToBounds(true)
+    scrollView:setBounceable(false)
 
     self:showBg()
     
@@ -95,27 +171,23 @@ end
 function GameScene:showBg()
     --- TODO
     -- 左下为 1,1
-    local margin_left = 0
-    if BA.IS_IPHONEX then
-        margin_left = 40
-    end
+    
     local node = display.newNode()
     node:addTo(self)
     local node_y = display.cy - 470/2
-    node:pos(40 + margin_left, node_y)
+    node:pos(40 + self.margin_left, node_y)
     self.oprateNode = node
-    self.margin_left = margin_left
+    
     self.node_y = node_y
 
     local bgArr = {}
-    local bgSize = 50
-    self.bgSize = bgSize
+
     for col = 1, 10 do
         local colArr = {}
         for row = 1, 10 do
-            local bg_spr = display.newSprite(IMG_PATH .. "bg_item_small.png")
+            local bg_spr = display.newSprite(CONFIG.IMG_PATH .. "bg_item_small.png")
             bg_spr:addTo(node)
-            bg_spr:pos((col - 1) * bgSize, display.height - node_y + 80) --(row - 1) * bgSize)
+            bg_spr:pos((col - 1) * self.bgSize, display.height - node_y + 80) --(row - 1) * bgSize)
             table.insert(colArr, bg_spr)
         end
         table.insert(bgArr, colArr)
@@ -138,13 +210,13 @@ function GameScene:showBg()
             if not self:posInTable(charPosArr, p) then
                  
                 local btn_item = display.newButton({
-                    normal = IMG_PATH .. "kong1_small.png",
-                    pressed = IMG_PATH .. "kong1_small.png",
+                    normal = CONFIG.IMG_PATH .. "kong1_small.png",
+                    pressed = CONFIG.IMG_PATH .. "kong1_small.png",
                     delegate = self,
                     callback = self.onItemHandler,
                     tag = self:posToTag(p)
                 })
-                btn_item:pos(p[1] * bgSize, display.height - node_y + 80) -- p[2] * bgSize)
+                btn_item:pos(p[1] * self.bgSize, display.height - node_y + 80) -- p[2] * bgSize)
                 btn_item:addTo(node)
                 -- btn_item.tag = self:posToTag(p)
                 self.btnArr[self:posToTag(p)] = btn_item
@@ -201,7 +273,7 @@ function GameScene:updatePosition(dt)
         scheduler.unscheduleGlobal(self.schedulePos)
         self.schedulePos = nil
 
-        self.focusSpr = display.newSprite(IMG_PATH .. "focus_small.png")
+        self.focusSpr = display.newSprite(CONFIG.IMG_PATH .. "focus_small.png")
         self.focusSpr:addTo(self.oprateNode)
 
         for k, v in pairs(self.btnArr) do
@@ -221,8 +293,8 @@ function GameScene:addBackupChars()
 
     for k, v in ipairs(self.backupCharsArr) do
         local btn_backup = display.newButton({
-            normal = IMG_PATH .. "optionItem.png",
-            pressed = IMG_PATH .. "optionItem.png",
+            normal = CONFIG.IMG_PATH .. "optionItem.png",
+            pressed = CONFIG.IMG_PATH .. "optionItem.png",
             delegate = self,
             callback = self.onBackupHandler,
             label = v,
@@ -262,7 +334,7 @@ function GameScene:onBackupHandler(tag)
         local char = btn.labelNormal:getString()
         print(char)
         -- 添加一个遮罩
-        local mask = display.newSprite(IMG_PATH .. "mask.png")
+        local mask = display.newSprite(CONFIG.IMG_PATH .. "mask.png")
         mask:addTo(btn)
         mask:setTag(1000)
         -- 目标btn
@@ -313,6 +385,17 @@ function GameScene:onItemHandler(tag)
     --- TODO
     print(tag)
     local btn = self.btnArr[tag]
+
+    -- 当前关卡以及开通词语解释
+    if CONFIG.meanTags[CONFIG.gate] then
+        local str_mean = self:getMeanData(tag)
+        print("mean", str_mean)
+        if str_mean ~= self.currMeanStr then
+            -- 重新設置滾動文本
+            self.currMeanStr = str_mean
+
+        end
+    end
 
     if self.currTag == tag then
         print("当前按钮")
@@ -612,17 +695,44 @@ function GameScene:onButtonHandler(tag)
     GameScene.super.onButtonHandler(self, tag)
 end
 
--- function GameScene:splitPos(posStr)
---     --- TODO
---     print(posStr)
---     local posTable = string.split(posStr, ";")
---     local posArr = {}
---     for k,v in ipairs(posTable) do
---         table.insert(posArr,string.split(v, ","))
---     end
+-- 获取一个位置对应词语的解释
+function GameScene:getMeanData(tag)
+    --- TODO
+    local pos = self:tagToPos(tag)
+    -- 0 h水平方向
+    -- 1 v
+    local mean_table = {}
+    for k, ci in ipairs(self.gateData) do
+        if self:posInTable(ci.pos, pos) then
+            local ori_mean = {}
+            if ci.ori == 0 then
+                ori_mean[1] = "hm"
+            elseif ci.ori == 1 then
+                ori_mean[1] = "vm"
+            end
+            ori_mean[2] = ci.mean
+            table.insert(mean_table, ori_mean)
+        end
+    end
 
---     return posArr
--- end
+    local str = ""
+    if #mean_table == 2 then
+        for k, v in ipairs(mean_table) do
+            if v[1] == "hm" then
+                str = "[橫向]" .. v[2] .. str
+            elseif v[1] == "vm" then
+                str = str .. "  [竪向]" .. v[2]
+            end
+        end
+    else
+        str = mean_table[1][2]
+    end
+
+
+    return str
+end
+
+
 
 
 

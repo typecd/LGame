@@ -7,7 +7,7 @@ CONFIG = {}
 -- 【请小游戏开发人员按下面的方式组合资源路径：CONFIG.REVIEW_PATH .. a.png】
 CONFIG.REVIEW_PATH   = BASE_IMAGE .. "review/"
 
-IMG_PATH = CONFIG.REVIEW_PATH .. "chengyu/"
+CONFIG.IMG_PATH = CONFIG.REVIEW_PATH .. "chengyu/"
 -- 【从这里可以自定义全局变量，比如CONFIG.A = "xxxx"】
 
 local c = cc
@@ -68,6 +68,15 @@ CONFIG.diamondKey = "diamond_key"
 
 CONFIG.totalGate = 12 --- 总关数
 CONFIG.currGate = 0 --- 当前关卡
+
+-- 成语狂人
+CONFIG.meanKey = "k_mean"
+CONFIG.meanTags =  {} -- 购买成语解释的关卡 开局要加载数据
+CONFIG.saveMeanTag = function() 
+    local str = json.encode(CONFIG.meanTags);
+    CCUserDefault:sharedUserDefault():setStringForKey(CONFIG.meanKey,str)
+end
+-- 成语狂人
 
 CONFIG.passGate = function(gate,score)
     local has = false;
@@ -164,6 +173,11 @@ CONFIG.loadConfig = function()
         CONFIG.gate = gate;
     end
 
+    local str_mean = CCUserDefault:sharedUserDefault():getStringForKey(CONFIG.meanKey)
+    if str_mean ~= "" then
+        CONFIG.meanTags = json.decode(str_mean)
+    end
+
     CONFIG.diamond = CCUserDefault:sharedUserDefault():getIntegerForKey(CONFIG.diamondKey);
 
     -- 音效开关 
@@ -214,13 +228,13 @@ end
 
 CONFIG.playEffect = function(name)
     if CONFIG.canPlayEffect then
-        SoundUtil.playEffect(IMG_PATH .. "chengyu", name, false)
+        SoundUtil.playEffect(CONFIG.IMG_PATH .. "chengyu", name, false)
     end
 end
 
 CONFIG.playMusic = function()
     if CONFIG.canPlayMusic then
-        SoundUtil.playMusic(IMG_PATH .. "chengyu", "mainTheme",true);
+        SoundUtil.playMusic(CONFIG.IMG_PATH .. "chengyu", "mainTheme",true);
     else
         audio.stopMusic();
     end

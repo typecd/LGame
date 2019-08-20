@@ -36,7 +36,7 @@ end
 function GateScene:onExit()
     scheduler.unscheduleGlobal(self.updateSchedule)
     display.removeAnimationCache("currLevel")
-    UITools.removeSpriteFrames(IMG_PATH .. "currlevel")
+    UITools.removeSpriteFrames(CONFIG.IMG_PATH .. "currlevel")
 end
 
 function GateScene:update(dt)
@@ -88,8 +88,8 @@ function GateScene:addLevelButton(index, show)
     end
 
     local btn_flag = display.newButton({
-        normal = IMG_PATH .. "scene/flag_10000.png",
-        pressed = IMG_PATH .. "scene/flag_10000.png",
+        normal = CONFIG.IMG_PATH .. "scene/flag_10000.png",
+        pressed = CONFIG.IMG_PATH .. "scene/flag_10000.png",
         delegate = self,
         callback = self.onFlagHandler,
         tag = index,
@@ -123,7 +123,7 @@ function GateScene:addStar(btn_flag, level)
         count = gate.score
     end
     for i = 1, count do 
-        local spr = display.newSprite(IMG_PATH .. "scene/star_10000.png")
+        local spr = display.newSprite(CONFIG.IMG_PATH .. "scene/star_10000.png")
         spr:pos(self.posStar[i][1], self.posStar[i][2])
         spr:rotation(self.posStar[i][3])
         local z = 0

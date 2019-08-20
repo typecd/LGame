@@ -31,13 +31,13 @@ end
 
 function LayerBase:addBackBtn()
     --- TODO
-    local spr_back = display.newSprite(IMG_PATH .. "podbtn_10000.png")
+    local spr_back = display.newSprite(CONFIG.IMG_PATH .. "podbtn_10000.png")
     spr_back:addTo(self)
     spr_back:rotation(90)
     spr_back:pos(display.cx - 160, 47)
     
     local btn_back = display.newButton({
-        normal = IMG_PATH .. "scene/btn_back_10000.png",
+        normal = CONFIG.IMG_PATH .. "scene/btn_back_10000.png",
         delegate = self,
         callback = self.onButtonHandler,
         tag = "back"
@@ -50,13 +50,13 @@ end
 
 function LayerBase:addShopBtn()
     --- TODO
-    local spr_shop = display.newSprite(IMG_PATH .. "podbtn_10000.png")
+    local spr_shop = display.newSprite(CONFIG.IMG_PATH .. "podbtn_10000.png")
     spr_shop:addTo(self)
     spr_shop:rotation(90)
     spr_shop:pos(display.cx, 47)
 
     local btn_shop = display.newButton({
-        normal = IMG_PATH .. "scene/btn_shop_icon_10000.png",
+        normal = CONFIG.IMG_PATH .. "scene/btn_shop_icon_10000.png",
         delegate = self,
         callback = self.onButtonHandler,
         tag = "shop"
@@ -71,8 +71,8 @@ function LayerBase:addSoundBtn(pos)
     --- TODO
 
     local btn_musicOn = display.newButton({
-        normal = IMG_PATH .. "btn_music_on.png",
-        pressed = IMG_PATH .. "btn_music_on.png",
+        normal = CONFIG.IMG_PATH .. "btn_music_on.png",
+        pressed = CONFIG.IMG_PATH .. "btn_music_on.png",
         delegate = self,
         callback = self.onButtonHandler,
         tag = "musicOn",
@@ -81,7 +81,7 @@ function LayerBase:addSoundBtn(pos)
     btn_musicOn:pos(pos[1], pos[2])
     self.btn_musicOn = btn_musicOn
 
-    local spr_musicOff = display.newSprite(IMG_PATH .. "btn_music_off.png")
+    local spr_musicOff = display.newSprite(CONFIG.IMG_PATH .. "btn_music_off.png")
     spr_musicOff:addTo(btn_musicOn)
     self.spr_musicOff = spr_musicOff
 
