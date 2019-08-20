@@ -14,20 +14,20 @@ end
 function GameScene:ctor()
     GameScene.super.ctor(self)
 
-    self:registerScriptTouchHandler(
-        function(event, x, y)
-            if event == "began" then
-                self:touchBegan(x, y)
-                return true
-            elseif event == "ended" then
-                self:touchEnded(x, y)
-            end
-        end,
-        false,
-        -127,
-        true
-    )
-    self:setTouchEnabled(true)
+    -- self:registerScriptTouchHandler(
+    --     function(event, x, y)
+    --         if event == "began" then
+    --             self:touchBegan(x, y)
+    --             return true
+    --         elseif event == "ended" then
+    --             self:touchEnded(x, y)
+    --         end
+    --     end,
+    --     false,
+    --     -127,
+    --     true
+    -- )
+    -- self:setTouchEnabled(true)
 
     self.gateData = CONFIG.gateData[CONFIG.gate]
     
@@ -123,26 +123,30 @@ function GameScene:ctor()
 
     local scrollView = CCScrollView:create()
     scrollView:setViewSize(CCSizeMake(350, 40))
-    scrollView:pos(100, 30)
+    scrollView:pos(100, 15)
     scrollView:ignoreAnchorPointForPosition(true)
-    
-    local lb_mean =  display.newTTFLabel({
-        text = "123456",
-        size = 24
-    })
-
-    -- if nil ~= lb_mean then
-        local scrollLayer = display.newLayer()
-        scrollView:setContainer(scrollLayer)
-        scrollView:updateInset()
-    -- end
     scrollView:setDirection(kCCScrollViewDirectionHorizontal)
     scrollView:setClippingToBounds(true)
     scrollView:setBounceable(false)
+    scrollView:addTo(self, 2)
+    local lb_mean = display.newTTFLabel({
+        text = "把赤诚的心交给人家。比喻真心待人。",
+        size = 24
+    })
+    print("sz ", lb_mean:getSize().width)
+    lb_mean:pos(300, 0)
+    scrollView:setContentSize(CCSizeMake(lb_mean:getSize().width + 340 + 300, 40))
+    scrollView:addChild(lb_mean)
 
+    -- scrollView:setContentOffset(ccp(0, 0))
+
+    self.scrollView =scrollView
     self:showBg()
     
     
+    -- 美帧更新scorllView的offset
+    self.updateLabel = schedule.scheduleUpdateGlobal(handler(self, self.updateLabelPos))
+
 end
 
 function GameScene:touchBegan(x, y)
@@ -166,6 +170,13 @@ function GameScene:_onExit()
     
 end
 
+function GameScene:startGame()
+    --- TODO
+    self.currOffset = 0 
+    self.maxOffset = 100
+    
+
+end
 
 -- 背景
 function GameScene:showBg()
@@ -732,8 +743,17 @@ function GameScene:getMeanData(tag)
     return str
 end
 
+-- 更新offest
+function GameScene:updateLabelPos(dt)
+    --- TODO
+    self.currOffset = self.currOffset - 5
 
+    self.scrollView:setContentOffset(ccp(self.currOffset, 0))
 
+    if self.currOffset < -self.maxOffset then
+        self.currOffset = 0
+    end
+end
 
 
 return GameScene
