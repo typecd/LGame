@@ -31,6 +31,39 @@ function GameScene:ctor()
 
     self.gateData = CONFIG.gateData[CONFIG.gate]
     
+    local btn_back = display.newButton({
+        normal = IMG_PATH .. "btn_back_1.png",
+        pressed = IMG_PATH .. "btn_back_2.png",
+        delegate = self,
+        callback = self.onButtonHandler,
+        tag = "back"
+    })
+    btn_back:addTo(self, 2)
+
+    local margin_left = 0
+    if BA.IS_IPHONEX then
+        margin_left = 40
+    end
+    btn_back:pos(40 + margin_left, display.height - 35)
+
+    self:addSoundBtn({150 + margin_left, display.height - 35})
+
+    -- 提示标示
+    local tip_spr = display.newSprite(IMG_PATH .. "tip.png")
+    tip_spr:addTo(self)
+    tip_spr:pos(40 + margin_left, 30)
+
+    local btn_reset = display.newButton({
+        normal = IMG_PATH .. "btn_reset.png",
+        pressed = IMG_PATH .. "btn_reset.png",
+        delegate = self,
+        callback = self.onButtonHandler,
+        tag = "reset",
+    })
+
+    btn_reset:addTo(self)
+    btn_reset:pos(465 + margin_left, 30)
+
     self:showBg()
     
     
@@ -68,25 +101,28 @@ function GameScene:showBg()
     end
     local node = display.newNode()
     node:addTo(self)
-    node:pos(40 + margin_left, display.cy - 590/2 + 20)
+    local node_y = display.cy - 470/2
+    node:pos(40 + margin_left, node_y)
     self.oprateNode = node
+    self.margin_left = margin_left
+    self.node_y = node_y
 
     local bgArr = {}
-    local bgSize = 62
+    local bgSize = 50
     self.bgSize = bgSize
     for col = 1, 10 do
         local colArr = {}
         for row = 1, 10 do
             local bg_spr = display.newSprite(IMG_PATH .. "bg_item_small.png")
             bg_spr:addTo(node)
-            bg_spr:pos((col - 1) * bgSize, (row - 1) * bgSize)
+            bg_spr:pos((col - 1) * bgSize, display.height - node_y + 80) --(row - 1) * bgSize)
             table.insert(colArr, bg_spr)
         end
         table.insert(bgArr, colArr)
     end
     self.bgArr = bgArr
     
-
+    self.choosedCount = 0
     self.backupCharsArr = {} -- 所有备选的文字
     self.backupBtnArr = {} -- 所有备选按钮
     self.labeCharArr = {}  -- 添加到btn上到文字label
@@ -97,7 +133,6 @@ function GameScene:showBg()
     for k, v in ipairs(self.gateData) do 
         -- 有字的位置添加按钮 可见字的位置不能点击
         -- 拆分pos
-        -- local posArr = self:splitPos(v.pos)
         local index = 1
         for i, p in ipairs(v.pos) do
             if not self:posInTable(charPosArr, p) then
@@ -107,17 +142,17 @@ function GameScene:showBg()
                     pressed = IMG_PATH .. "kong1_small.png",
                     delegate = self,
                     callback = self.onItemHandler,
-                    tag = p[1] .. "," .. p[2]
+                    tag = self:posToTag(p)
                 })
-                btn_item:pos(p[1] * bgSize, p[2] * bgSize)
+                btn_item:pos(p[1] * bgSize, display.height - node_y + 80) -- p[2] * bgSize)
                 btn_item:addTo(node)
-                -- btn_item.tag = p[1] .. "," .. p[2]
-                self.btnArr[p[1] .. "," .. p[2]] = btn_item
+                -- btn_item.tag = self:posToTag(p)
+                self.btnArr[self:posToTag(p)] = btn_item
 
                 if v.vis[i] == 1 then
                     local text = display.newTTFLabel({
                         text = v.term:sub(index, index + 2),
-                        size = 28,
+                        size = 26,
                     })
                     text:addTo(btn_item)
                     text:setTag(1000)
@@ -136,20 +171,47 @@ function GameScene:showBg()
 
     CONFIG.shuffle(self.backupCharsArr)
 
-    self.focusSpr = display.newSprite(IMG_PATH .. "focus_small.png")
-    self.focusSpr:addTo(self.oprateNode)
-    -- self.focusSpr:setVisible(false)
-
-    for k, v in pairs(self.btnArr) do
-        if not v.original then
-            self.currTag = v.data
-            self.focusSpr:pos(v:getx(), v:gety())
-            break
-        end
-    end
+    self.moveTime = {1, 1.2, 1.5, 1.1, 0.8, 1, 1.3, 1.4, 0.9, 1.1}
 
     self:addBackupChars()
 
+    self.schedulePos = scheduler.scheduleGlobal(handler(self, self.updatePosition), 0.2)    
+    self.showRow = 1
+
+    
+
+    
+    
+end
+
+function GameScene:updatePosition(dt)
+    --- TODO
+    for col = 1, 10 do
+        self.bgArr[col][self.showRow]:runAction(CCMoveTo:create(self.moveTime[col] - 0.8, ccp((col-1) * self.bgSize, (self.showRow - 1) * self.bgSize)))
+        local tag = (col - 1) .. "," .. (self.showRow - 1)
+        local btn = self.btnArr[tag]
+        if btn then
+            btn:runAction(CCMoveTo:create(self.moveTime[col] - 0.8, ccp((col-1) * self.bgSize, (self.showRow - 1) * self.bgSize)))
+        end
+    end
+
+    self.showRow = self.showRow + 1
+    if self.showRow == 11 then
+        print(" stop schedule ")
+        scheduler.unscheduleGlobal(self.schedulePos)
+        self.schedulePos = nil
+
+        self.focusSpr = display.newSprite(IMG_PATH .. "focus_small.png")
+        self.focusSpr:addTo(self.oprateNode)
+
+        for k, v in pairs(self.btnArr) do
+            if not v.original then
+                self.currTag = v.data
+                self.focusSpr:pos(v:getx(), v:gety())
+                break
+            end
+        end
+    end
 end
 
 -- 显示备选文字
@@ -167,8 +229,15 @@ function GameScene:addBackupChars()
             tag = "tag_" .. k
         })
         btn_backup:addTo(self.oprateNode)
-        btn_backup:pos(self.bgSize * 10 + 40 + (k - 1)%6 * 75 , 275 + (rows/2 - math.floor((k-1)/6)) * 75)
+        btn_backup:pos(display.cx - (40 + self.margin_left)/2 + self.bgSize * 5 - 75 * 3 + (k - 1)%6 * 75 + 35, 
+                display.cy + rows * 75 / 2 - math.floor((k-1)/6) * 75 - self.node_y - 37.5)
         self.backupBtnArr["tag_" .. k] = btn_backup
+        btn_backup:scale(0)
+        btn_backup:runAction(transition.sequence({
+            CCDelayTime:create( self.moveTime[math.random(1, 10)] - 0.5  ),
+            CCScaleTo:create(0.2, 1.2, 1.2),
+            CCScaleTo:create(0.1, 1, 1)
+        }))
     end
 
 end
@@ -200,7 +269,7 @@ function GameScene:onBackupHandler(tag)
         
         local label = display.newTTFLabel({
             text = char,
-            size = 28,
+            size = 26,
         })
         label.originalPos = {btn:getx(), btn:gety()}
         label.tagPos = {btn_tag:getx(), btn_tag:gety()}
@@ -221,12 +290,20 @@ function GameScene:onBackupHandler(tag)
         -- 已经有遮罩,找到对应label移除 并移除再移除mask
         btn.masked = false
 
+        print(btn.labelTag)
+        dump(self.labeCharArr)
+
         local label = self.labeCharArr[btn.labelTag]
+        print(label)
+
         self:labelMoveToBackup(label)
         self.currTag = btn.labelTag
         local pos = string.split(self.currTag, ",")
         self.focusSpr:runAction(CCMoveTo:create(0.1, ccp(pos[1] * self.bgSize, pos[2] * self.bgSize)))
         self.labeCharArr[btn.labelTag] = nil
+        if self.btnArr[self.currTag].red then
+            self.btnArr[self.currTag]:setColor(ccc3(255, 255, 255))
+        end
     end
     
 end
@@ -243,8 +320,20 @@ function GameScene:onItemHandler(tag)
         return
     end
 
+    -- 取消特殊颜色
+    -- 找出tag所在词语,让red按钮颜色还原
     if btn.red then
-        -- 
+        local changeData = self:findDataByTag(tag)
+        for k, v in ipairs(changeData) do
+            for i, pos in ipairs(v.pos) do
+                local tag = self:posToTag(pos)
+                local btn = self.btnArr[tag]
+                if btn.red then
+                    btn.red = false
+                    btn:setColor(ccc3(255, 255, 255))
+                end
+            end
+        end
     end
     
     
@@ -285,11 +374,27 @@ function GameScene:onItemHandler(tag)
 
 end
 
+
+-- tag所在词语的数据,通过数据找btn和label
+function GameScene:findDataByTag(tag)
+    --- TODO
+    local pos = self:tagToPos(tag)
+
+    local temp_data = {}
+    for k, v in ipairs(self.gateData) do
+        if self:posInTable(v.pos, pos) then
+            table.insert(temp_data, v)
+        end
+    end
+
+    return temp_data
+end
+
+
 function GameScene:findTagAndMoveFocusSpr()
     --- TODO
     --- 根据当前currTag找到对应对成语第一个空位,并确定当前移动对方向，同一个方向优先寻找
-    local currPos = string.split(self.currTag, ",")
-    currPos = {tonumber(currPos[1]), tonumber(currPos[2])}
+    local currPos = self:tagToPos(self.currTag)
     -- print("self.currTag", self.currTag)
     -- dump(currPos)
     -- 手动选择了新位置
@@ -315,7 +420,7 @@ function GameScene:findTagAndMoveFocusSpr()
     -- 在currData中找一个未填字的按钮
     for k, v in ipairs(self.currData.pos) do
         if self.currData.vis[k] == 0 then
-            local tag = v[1] .. "," .. v[2]
+            local tag = self:posToTag(v)
             local label = self.labeCharArr[tag]
             if not label then
                 self.currTag = tag
@@ -349,12 +454,17 @@ function GameScene:findTagAndMoveFocusSpr()
         self:isContentComplete(v)
     end
 
+    print(self.choosedCount , #self.backupCharsArr)
+    if self.choosedCount == #self.backupCharsArr then
+        print("通关")
 
+        return
+    end
 
     -- 当前词语已经填满 找一个新位置
     for k, v in ipairs(self.gateData) do
         for i, pos in ipairs(v.pos) do
-            local tag = pos[1] .. "," .. pos[2]
+            local tag = self:posToTag(pos)
             if not self.labeCharArr[tag] and v.vis[i] == 0 then
                 self.currData = v
                 self.currTag = tag
@@ -382,7 +492,7 @@ function GameScene:isContentComplete(data)
     local temp_label = {} 
     for k, v in ipairs(data.pos) do
         if data.vis[k] == 0 then
-            local tag = v[1] .. "," .. v[2]
+            local tag = self:posToTag(v)
             print("tag", tag)
             local label = self.labeCharArr[tag]
             if label then
@@ -409,6 +519,7 @@ function GameScene:isContentComplete(data)
             if not btn.original then
                 btn:setColor(ccc3(0, 255, 0))
                 btn.original = true
+                btn.red = false 
             end
         end
 
@@ -422,6 +533,7 @@ function GameScene:isContentComplete(data)
                 btn_backup.labelNormal = nil
                 btn_backup.labelPressed = nil
                 btn_backup.labelDisabled = nil
+                self.choosedCount = self.choosedCount + 1
             end
             btn_backup.choosed = true
         end
@@ -468,6 +580,7 @@ function GameScene:labelMoveToBackup(label)
         end),
         CCCallFuncN:create(function(node) 
             self.backupBtnArr[node.tag]:removeChildByTag(1000, true)
+            self.backupBtnArr[node.tag].masked = false
         end)
     })
     label:runAction(act)
@@ -485,18 +598,31 @@ function GameScene:scaleAndReverce(view, scale)
     view:runAction(seq)
 end
 
--- "5,9;6,9;7,9;8,9"
-function GameScene:splitPos(posStr)
-    --- TODO
-    print(posStr)
-    local posTable = string.split(posStr, ";")
-    local posArr = {}
-    for k,v in ipairs(posTable) do
-        table.insert(posArr,string.split(v, ","))
-    end
 
-    return posArr
+function GameScene:posToTag(pos)
+    --- TODO
+    local tag = pos[1] .. "," .. pos[2]
+    return tag
 end
+
+
+function GameScene:onButtonHandler(tag)
+    --- TODO
+    print(tag)
+    GameScene.super.onButtonHandler(self, tag)
+end
+
+-- function GameScene:splitPos(posStr)
+--     --- TODO
+--     print(posStr)
+--     local posTable = string.split(posStr, ";")
+--     local posArr = {}
+--     for k,v in ipairs(posTable) do
+--         table.insert(posArr,string.split(v, ","))
+--     end
+
+--     return posArr
+-- end
 
 
 

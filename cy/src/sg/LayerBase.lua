@@ -67,61 +67,26 @@ function LayerBase:addShopBtn()
 end
 
 
-function LayerBase:addSoundBtn()
+function LayerBase:addSoundBtn(pos)
     --- TODO
-    local spr_sound = display.newSprite(IMG_PATH .. "podbtn_10000.png")
-    spr_sound:addTo(self)
-    spr_sound:rotation(90)
-    spr_sound:pos(display.cx + 160, 47)
 
     local btn_musicOn = display.newButton({
-        normal = IMG_PATH .. "scene/btn_musicon_10000.png",
-        pressed = IMG_PATH .. "scene/btn_musicon_10000.png",
+        normal = IMG_PATH .. "btn_music_on.png",
+        pressed = IMG_PATH .. "btn_music_on.png",
         delegate = self,
         callback = self.onButtonHandler,
         tag = "musicOn",
     })
-    btn_musicOn:addTo(spr_sound)
-    btn_musicOn:pos(38, 38)
-    btn_musicOn:rotation(-90)
+    btn_musicOn:addTo(self)
+    btn_musicOn:pos(pos[1], pos[2])
     self.btn_musicOn = btn_musicOn
-    local btn_sfxOn = display.newButton({
-        normal = IMG_PATH .. "scene/btn_sfxon_10000.png",
-        pressed = IMG_PATH .. "scene/btn_sfxon_10000.png",
-        delegate = self,
-        callback = self.onButtonHandler,
-        tag = "sfxOn",
-    })
-    btn_sfxOn:addTo(spr_sound)
-    btn_sfxOn:pos(38, 38)
-    btn_sfxOn:rotation(-90)
-    self.btn_sfxOn = btn_sfxOn
 
-    local btn_soundsOff = display.newButton({
-        normal = IMG_PATH .. "scene/btn_soundsoff_10000.png",
-        pressed = IMG_PATH .. "scene/btn_soundsoff_10000.png",
-        delegate = self,
-        callback = self.onButtonHandler,
-        tag = "soundsOff",
-    })
-    btn_soundsOff:addTo(spr_sound)
-    btn_soundsOff:pos(38, 38)
-    btn_soundsOff:rotation(-90)
-    self.btn_soundsOff = btn_soundsOff
+    local spr_musicOff = display.newSprite(IMG_PATH .. "btn_music_off.png")
+    spr_musicOff:addTo(btn_musicOn)
+    self.spr_musicOff = spr_musicOff
 
-    btn_sfxOn:hideAndBan(false)
-    btn_musicOn:hideAndBan(false)
-    btn_soundsOff:hideAndBan(false)
+    self.spr_musicOff:setVisible( not CONFIG.canPlayEffect)
 
-    if CONFIG.canPlayEffect and CONFIG.canPlayMusic then
-        btn_soundsOff:hideAndBan(true)
-    elseif CONFIG.canPlayEffect then
-        btn_sfxOn:hideAndBan(true)
-    elseif CONFIG.canPlayMusic then
-        btn_musicOn:hideAndBan(true)
-    else
-        btn_soundsOff:hideAndBan(true)
-    end
 end
 
 
@@ -162,35 +127,12 @@ end
 
 function LayerBase:onButtonHandler(tag)
     -- play sound
-    if tag == "back" then
-        CONFIG.changeScene(self.backScene, self)
-    elseif tag == "shop" then
+    if tag == "shop" then
         CONFIG.changeScene("shopScene", self)
     elseif tag == "musicOn" then
-        self.btn_musicOn:hideAndBan(false)
-        self.btn_sfxOn:hideAndBan(true)
-        CONFIG.canPlayMusic = false
-        CONFIG.canPlayEffect = true
-        CONFIG.saveMusic(2)
-        CONFIG.saveEffect(1)
-        CONFIG.playMusic()
-    elseif tag == "sfxOn" then
-        self.btn_sfxOn:hideAndBan(false)
-        self.btn_soundsOff:hideAndBan(true)
-        
-        CONFIG.canPlayMusic = true
-        CONFIG.canPlayEffect = true
-        CONFIG.saveMusic(1)
-        CONFIG.saveEffect(1)
-        CONFIG.playMusic()
-    elseif tag == "soundsOff" then
-        self.btn_musicOn:hideAndBan(true)
-        self.btn_soundsOff:hideAndBan(false)
-
-        CONFIG.canPlayMusic = true
-        CONFIG.canPlayEffect = false
-        CONFIG.saveMusic(1)
-        CONFIG.saveEffect(2)
+        CONFIG.canPlayEffect = not CONFIG.canPlayEffect
+        CCUserDefault:sharedUserDefault():setBoolForKey("sound_status",CONFIG.canPlayEffect)
+        self.spr_musicOff:setVisible( not CONFIG.canPlayEffect)
     end
 
     print("LayerBase:onButtonHandler ---")
