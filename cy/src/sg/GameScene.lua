@@ -88,7 +88,7 @@ function GameScene:ctor()
     local lb_coin = CONFIG.createBMFont(CONFIG.diamond, CONFIG.IMG_PATH .. "coin_fnt.fnt")
     lb_coin:addTo(spr_coin)
     lb_coin:pos(100, 32)
-
+    self.lb_coin = lb_coin
 
     local btn_adTip = display.newButton({
         normal = CONFIG.IMG_PATH .. "btn_adtip.png",
@@ -115,6 +115,7 @@ function GameScene:ctor()
     local btn_jieshi = display.newButton({
         normal = CONFIG.IMG_PATH .. "btn_jieshi.png",
         pressed = CONFIG.IMG_PATH .. "btn_jieshi.png",
+        disabled = CONFIG.IMG_PATH .. "btn_jieshi_disabled.png",
         delegate = self,
         callback = self.onButtonHandler,
         tag = "jieshi"
@@ -122,6 +123,11 @@ function GameScene:ctor()
     btn_jieshi:addTo(self)
     btn_jieshi:scale(0.6)
     btn_jieshi:pos(display.width - 60, 35)
+    self.btn_jieshi = btn_jieshi
+
+    if CONFIG.meanTags[CONFIG.gate] then
+        btn_jieshi:setEnabled(false)
+    end
 
     local scrollView = CCScrollView:create()
     scrollView:setViewSize(CCSizeMake(350, 40))
@@ -159,13 +165,14 @@ function GameScene:touchEnded(x, y)
 end
 
 function GameScene:_onEnter()
-
+    EventManager:getInstance():add("getJieShi", self.updateCoin, self)
 end
 
 
 function GameScene:_onExit()
     self.super._onExit(self)
 
+    EventManager:getInstance():removeAll(self)
     
 end
 
@@ -260,7 +267,8 @@ function GameScene:showBg()
         -- 拆分pos
         local index = 1
         for i, p in ipairs(v.pos) do
-            if not self:posInTable(charPosArr, p) then
+            local inTable, id = self:posInTable(charPosArr, p)
+            if not inTable then
                  
                 local btn_item = display.newButton({
                     normal = CONFIG.IMG_PATH .. "kong1_small.png",
@@ -521,7 +529,8 @@ function GameScene:findDataByTag(tag)
 
     local temp_data = {}
     for k, v in ipairs(self.gateData) do
-        if self:posInTable(v.pos, pos) then
+        local inTable, index = self:posInTable(v.pos, pos)
+        if inTable then
             table.insert(temp_data, v)
         end
     end
@@ -537,8 +546,12 @@ function GameScene:findTagAndMoveFocusSpr()
     -- print("self.currTag", self.currTag)
     -- dump(currPos)
     -- 手动选择了新位置
-    if self.currData and not self:posInTable(self.currData.pos, currPos) then
-        self.currData = nil
+    
+    if self.currData then
+        local inTable, index = self:posInTable(self.currData.pos, currPos)
+        if not inTable then
+            self.currData = nil
+        end
     end
 
     -- 如果当前需要填充对成语为nil 根据currTag找一个
@@ -555,7 +568,7 @@ function GameScene:findTagAndMoveFocusSpr()
             end
         end        
     end
-
+    print(571)
     -- 在currData中找一个未填字的按钮
     for k, v in ipairs(self.currData.pos) do
         if self.currData.vis[k] == 0 then
@@ -573,7 +586,7 @@ function GameScene:findTagAndMoveFocusSpr()
             end
         end
     end
-
+    print(589)
     -- 执行到这时，表示当前词已经填满
     self:isContentComplete(self.currData)
     
@@ -582,7 +595,8 @@ function GameScene:findTagAndMoveFocusSpr()
     for k, data in ipairs(self.gateData) do
         if data ~= self.currData then
             local pos = self:tagToPos(self.currTag)
-            if self:posInTable(data.pos, pos) then
+            local inTable, index = self:posInTable(data.pos, pos)
+            if inTable then
                 print("其他词语")
                 table.insert(other_data, data)
             end
@@ -702,7 +716,7 @@ function GameScene:posInTable(table, pos)
     --- TODO
     for k, v in ipairs(table) do
         if pos[1] == v[1] and pos[2] == v[2] then
-            return true
+            return true, k
         end
     end
     return false
@@ -753,6 +767,20 @@ function GameScene:onButtonHandler(tag)
         self:resetView()
     elseif tag == "jieshi" then
         ConfirmBuyView.show(self)
+    elseif tag == "tip" then
+        if CONFIG.diamond >= 60 then
+            if self:tipContent() then
+                CONFIG.diamond = CONFIG.diamond - 60
+                CONFIG.saveDiamond()
+                self.lb_coin:setString(CONFIG.diamond)
+                self:findTagAndMoveFocusSpr()
+                print(777)
+            else
+                Toast:showToast("此處已是正確內容")
+            end
+        else
+            Toast:showToast("您的金幣不足")
+        end
     end
 end
 
@@ -765,7 +793,8 @@ function GameScene:getMeanData(tag)
     -- 1 v
     local mean_table = {}
     for k, ci in ipairs(self.gateData) do
-        if self:posInTable(ci.pos, pos) then
+        local inTable, index = self:posInTable(ci.pos, pos)
+        if inTable then
             local ori_mean = {}
             if ci.ori == 0 then
                 ori_mean[1] = "hm"
@@ -841,6 +870,78 @@ function GameScene:resetView()
     end
 
     self:showBg()
+end
+
+function GameScene:updateCoin()
+    --- TODO
+    self.lb_coin:setString(CONFIG.diamond)
+    self.btn_jieshi:setEnabled(false)
+end
+
+
+function GameScene:tipContent()
+    --- TODO
+    -- 根据当前tag找字,
+    -- 根据字找button
+    -- btn添加遮罩 移除label
+
+    if self.btnArr[self.currTag].original then
+        return false
+    end
+
+    local pos = self:tagToPos(self.currTag)
+    for k, v in ipairs(self.gateData) do
+        local inTable, index = self:posInTable(v.pos, pos)
+        if inTable then
+            local char = v.term:sub(1 + (index - 1)*3, 3*index)
+            print("896", char)
+            local function getBtn(begin)
+                print(898, begin)
+                local i = table.indexof(self.backupCharsArr, char, begin)
+                local btn_backup = self.backupBtnArr["tag_" .. i]
+                if not btn_backup.masked and not btn_backup.choosed then
+                    return btn_backup, i
+                else
+                    return getBtn(i + 1), i
+                end
+            end
+            
+            local btn_backup, tag_index = getBtn()
+            if btn_backup.labelNormal then
+                btn_backup.labelNormal:removeSelf()
+                btn_backup.labelPressed:removeSelf()
+                btn_backup.labelDisabled:removeSelf()
+                btn_backup.labelNormal = nil
+                btn_backup.labelPressed = nil
+                btn_backup.labelDisabled = nil
+                self.choosedCount = self.choosedCount + 1
+            end
+            btn_backup.choosed = true
+            btn_backup.masked = true
+     
+            -- 添加一个遮罩
+            local mask = display.newSprite(CONFIG.IMG_PATH .. "mask.png")
+            mask:addTo(btn_backup)
+            mask:setTag(1000)
+
+            -- currTag
+            local btn_item = self.btnArr[self.currTag]
+            local label = display.newTTFLabel({
+                text = char,
+                size = 26
+            })
+            label:addTo(btn_item)
+            label.tag = "tag_" .. tag_index
+            self.labeCharArr[self.currTag] = label -- 影响空位查找
+
+            btn_item.original = true
+            btn_item:setColor(ccc3(0, 255, 0))
+
+            return true
+        end
+    end
+
+    return false
 end
 
 

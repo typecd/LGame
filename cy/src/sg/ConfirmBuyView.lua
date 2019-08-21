@@ -5,7 +5,7 @@ end)
 function ConfirmBuyView.show(parent)
     --- TODO
     local layer = ConfirmBuyView.new()
-    layer:addTo(parent)
+    layer:addTo(parent, 3)
 end
 
 function ConfirmBuyView:ctor()
@@ -45,10 +45,12 @@ function ConfirmBuyView:ctor()
             if CONFIG.diamond >= 40 then
                 CONFIG.meanTags[CONFIG.gate] = 1
                 CONFIG.saveMeanTag()
+                CONFIG.diamond = CONFIG.diamond - 40
+                EventManager:getInstance():dispatch("getJieShi")
                 self:removeSelf()
             else
                 print("金币不足")
-
+                Toast:showToast("金幣不足")
             end
         end
     })

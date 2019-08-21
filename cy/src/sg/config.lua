@@ -76,6 +76,9 @@ CONFIG.saveMeanTag = function()
     local str = json.encode(CONFIG.meanTags);
     CCUserDefault:sharedUserDefault():setStringForKey(CONFIG.meanKey,str)
 end
+CONFIG.saveDiamond = function() 
+    CCUserDefault:sharedUserDefault():setIntegerForKey(CONFIG.diamondKey, CONFIG.diamond)
+end
 -- 成语狂人
 
 CONFIG.passGate = function(gate,score)
