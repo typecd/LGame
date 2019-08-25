@@ -16,6 +16,38 @@ end
 
 function GateScene:ctor()
 
+    local bg = display.newSprite(CONFIG.IMG_PATH .. "bg.png")
+    bg:addTo(self)
+    bg:pos(display.cx, display.cy)
+
+    local bg_bottom = display.newSprite(CONFIG.IMG_PATH .. "bg_bottom.png")
+    bg_bottom:addTo(self)
+    bg_bottom:pos(display.cx, bg_bottom:getSize().height/2)
+
+    local bg_gate = display.newSprite(CONFIG.IMG_PATH .. "bg_gate.png")
+    bg_gate:addTo(self)
+    bg_gate:pos(display.cx, display.height + bg_gate:getSize().height/2)
+    self.bg_gate = bg_gate
+
+    local btn_node = display.newNode()
+    btn_node:addTo(self)
+    btn_node:center()
+
+    local row = 4
+    local col = 6
+    for i = 1, row*col do
+        local btn = display.newButton({
+            normal = CONFIG.IMG_PATH .. "btn_passed.png",
+            pressed = CONFIG.IMG_PATH .. "btn_passed.png",
+            delegate = self,
+            callback = self.onButtonHandler,
+            tag = "tag",
+        })
+        btn:scale(0.5)
+        btn:addTo(btn_node)
+        btn:pos(((i-1)%col - (col-1)/2) * 100,  ((row-1)/2 - math.modf((i-1)/col)) * 100)
+
+    end
 
     self:registerScriptHandler(function(event) 
         if event == "enter" then
@@ -31,120 +63,21 @@ end
 function GateScene:onEnter()
     
     self.updateSchedule = scheduler.scheduleUpdateGlobal(handler(self, self.update))
+    local mt = CCMoveTo:create(1.2, ccp(display.cx, display.cy))
+    local action = transition.newEasing(mt, "CCEaseElasticOut", 0.3)
+    self.bg_gate:runAction(action)
+
+
+
 end
 
 function GateScene:onExit()
     scheduler.unscheduleGlobal(self.updateSchedule)
-    display.removeAnimationCache("currLevel")
-    UITools.removeSpriteFrames(CONFIG.IMG_PATH .. "currlevel")
+
 end
 
 function GateScene:update(dt)
-    if self.LevelAniActive then
-
-        if self.hide then
-            self.opacity = self.opacity + 5
-            if self.opacity >= 255 then
-                self.opacity = 255
-                self.hide = false
-            end
-        else
-            self.opacity = self.opacity - 5
-            if self.opacity <= 0 then
-                self.opacity = 0
-                self.hide = true
-            end
-        end
-        self.currLevelSpr:setOpacity(self.opacity)
-    end
-end
-
-
-function GateScene:createMap()
-    for i = 1, self.levelOpened do 
-        self:addLevelButton(i)
-    end
-
-    -- for i = 1, self.levelOpened - 1 do 
-    --     self:addWayPoins(i)
-    -- end
-end
-
-
-function GateScene:addLevelButton(index, show)
-    if show == nil then 
-        show = false
-    end
-    local currLvl = nil
-    if index < 6 then
-        currLvl = index + 1
-    else
-        currLvl = index
-    end
-
-    if index == 6 then
-        
-    elseif index == 13 then
-    end
-
-    local btn_flag = display.newButton({
-        normal = CONFIG.IMG_PATH .. "scene/flag_10000.png",
-        pressed = CONFIG.IMG_PATH .. "scene/flag_10000.png",
-        delegate = self,
-        callback = self.onFlagHandler,
-        tag = index,
-        label = tostring(index)
-    })
-    btn_flag:addTo(self, 1)
-    btn_flag:pos(self.flagsPosition[index][1] + display.cx, self.flagsPosition[index][2] + display.cy)
-    if show == false then
-        self:addStar(btn_flag, index)
-    end
-    btn_flag.numLevel = currLvl
-    -- self.btn_flag = btn_flag
-end
-
-
-function GateScene:onFlagHandler(tag)
-    print("flag: ",tag)
-    CONFIG.gateData = GateData.new(tag)
-    CONFIG.currGate = tag
-    CONFIG.changeScene("gameScene", self)
-    CONFIG.playEffect("mouse_click")
-end
-
-
--- 添加star
-function GateScene:addStar(btn_flag, level)
-    -- 从本地数据获取star
-    local count = 0
-    local gate = CONFIG.getPassGate(level)
-    if gate then
-        count = gate.score
-    end
-    for i = 1, count do 
-        local spr = display.newSprite(CONFIG.IMG_PATH .. "scene/star_10000.png")
-        spr:pos(self.posStar[i][1], self.posStar[i][2])
-        spr:rotation(self.posStar[i][3])
-        local z = 0
-        if i == 2 then
-            z = 1
-        end
-        btn_flag:addChild(spr, z)
-    end
-    if count == 0 then
-        self.currLevelSpr:setVisible(true)
-        self.currLevelSpr:pos(btn_flag:getx() + 2, btn_flag:gety())
-        self.LevelAniActive = true
-        self.currAniSpr:setVisible(true)
-        self.currAniSpr:pos(btn_flag:getx() + 2, btn_flag:gety() - 30)
-        transition.playAnimationForever(self.currAniSpr, display.getAnimationCache("currLevel"))
-    end
-end
-
-
-function GateScene:addWayPoins(index)
-
+    
 end
 
 
